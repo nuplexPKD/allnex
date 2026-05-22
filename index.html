@@ -7,26 +7,92 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <style>
-body { font-family: Arial; background:#f5f5f5; margin:0;}
-.container { max-width:500px; margin:auto; background:white; padding:20px;}
-h2 { text-align:center; color:#ee4d2d;}
-input,select,button { width:100%; padding:12px; margin:6px 0; }
-button { background:#ee4d2d; color:white; border:none;}
-.order { border-bottom:1px solid #ddd; padding:8px;}
+body { margin:0; font-family:Arial; background:#f5f5f5;}
+
+/* HEADER */
+.header {
+  background:#ee4d2d;
+  color:white;
+  padding:15px;
+  text-align:center;
+  font-size:20px;
+}
+
+/* CONTAINER */
+.container {
+  max-width:600px;
+  margin:auto;
+  padding:15px;
+}
+
+/* CARD */
+.card {
+  background:white;
+  padding:15px;
+  margin-bottom:10px;
+  border-radius:8px;
+}
+
+/* INPUT */
+input, select {
+  width:100%;
+  padding:12px;
+  margin:5px 0;
+  border:1px solid #ddd;
+  border-radius:6px;
+}
+
+/* BUTTON */
+button {
+  width:100%;
+  padding:12px;
+  background:#ee4d2d;
+  color:white;
+  border:none;
+  border-radius:6px;
+  font-weight:bold;
+}
+
+button:hover { background:#d84315; }
+
+/* LOGIN MODAL */
+.modal {
+  display:none;
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background:white;
+  padding:20px;
+  max-width:400px;
+  margin:100px auto;
+  border-radius:8px;
+}
+
+/* ORDER LIST */
+.order {
+  border-bottom:1px solid #eee;
+  padding:10px 0;
+}
 </style>
 
 </head>
 
 <body>
 
+<div class="header">🛒 Allnex Customer Portal</div>
+
 <div class="container">
 
-<h2>🛒 Allnex Customer Portal</h2>
+<div class="card">
+  <b id="userInfo">Not logged in</b>
+  <button onclick="openLogin()">Login</button>
+</div>
 
-<button onclick="login()">Login</button>
-
-<hr>
-
+<div class="card">
 <h3>Create Order</h3>
 
 <input id="search" placeholder="Search product..." onkeyup="filterProduct()">
@@ -37,68 +103,144 @@ button { background:#ee4d2d; color:white; border:none;}
 <input id="note" placeholder="Note">
 
 <button onclick="submitOrder()">Submit Order</button>
+</div>
 
-<hr>
-
+<div class="card">
 <h3>My Orders</h3>
 <button onclick="loadOrders()">Refresh</button>
 <div id="orders"></div>
+</div>
 
+</div>
+
+<!-- LOGIN POPUP -->
+<div id="loginModal" class="modal">
+  <div class="modal-content">
+    <h3>Login</h3>
+    <input id="loginEmail" placeholder="Enter email">
+    <button onclick="login()">Send OTP</button>
+    <button onclick="closeLogin()">Cancel</button>
+  </div>
 </div>
 
 <script>
 
-// 🔑 CONFIG (ANH ĐỔI 2 dòng này)
-const supabase = supabase.createClient(
-  "https://YOUR_PROJECT.supabase.co",
-  "YOUR_PUBLIC_KEY"
+// ✅ CONFIG (anh sửa)
+const supabaseClient = supabase.createClient(
+ "https://YOUR_PROJECT.supabase.co",
+ "YOUR_PUBLIC_KEY"
 );
 
 const EMAIL_API = "https://formspree.io/f/YOUR_ID";
 
-// 📦 PRODUCT LIST (anh paste full 300 SKU vào đây)
+// ✅ PRODUCT (anh paste full list)
 const products = [
 "066395A01P01 - AQUAGUARD",
 "059943A01P01 - CLEAR",
 "066180A01P01 - BERMUDA"
 ];
 
-const dropdown = document.getElementById("product");
-
-// load sản phẩm
+// load products
 function loadProducts(list){
-  dropdown.innerHTML="";
+  let html="";
   list.forEach(p=>{
-    const opt=document.createElement("option");
-    opt.text=p;
-    opt.value=p;
-    dropdown.add(opt);
+    html += `<option>${p}</option>`;
   });
+  document.getElementById("product").innerHTML = html;
 }
 
 loadProducts(products);
 
-// search giống Shopee
+// search
 function filterProduct(){
   let kw=document.getElementById("search").value.toLowerCase();
   let filtered=products.filter(p=>p.toLowerCase().includes(kw));
   loadProducts(filtered);
 }
 
-// 🔐 LOGIN (OTP email)
-async function login(){
-  let email = prompt("Enter your email:");
-  await supabase.auth.signInWithOtp({ email: email });
-  alert("Check email to login");
+// login UI
+function openLogin(){
+ document.getElementById("loginModal").style.display="block";
 }
 
-// ✅ SUBMIT ORDER
+function closeLogin(){
+ document.getElementById("loginModal").style.display="none";
+}
+
+// login logic
+async function login(){
+ let email=document.getElementById("loginEmail").value;
+
+ await supabaseClient.auth.signInWithOtp({ email: email });
+
+ alert("Check email to login");
+ closeLogin();
+}
+
+// show user
+async function showUser(){
+ const { data } = await supabaseClient.auth.getUser();
+ if(data.user){
+   document.getElementById("userInfo").innerHTML =
+   "👤 " + data.user.email;
+ }
+}
+showUser();
+
+// submit
 async function submitOrder(){
 
-  const user = await supabase.auth.getUser();
+ const user = await supabaseClient.auth.getUser();
 
-  const data = {
-    customer_email: user.data.user.email,
-    product: document.getElementById("product").value,
-    quantity: document.getElementById("quantity").value,
+ const data = {
+   customer_email: user.data.user.email,
+   product: document.getElementById("product").value,
+   quantity: document.getElementById("quantity").value,
+   address: document.getElementById("address").value,
+   note: document.getElementById("note").value
+ };
 
+ await supabaseClient.from("orders").insert([data]);
+
+ await fetch(EMAIL_API, {
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body: JSON.stringify({
+     message: JSON.stringify(data,null,2)
+   })
+ });
+
+ alert("✅ Order Submitted");
+}
+
+// load history
+async function loadOrders(){
+
+ const user = await supabaseClient.auth.getUser();
+
+ const { data } = await supabaseClient
+  .from("orders")
+  .select("*")
+  .eq("customer_email",user.data.user.email)
+  .order("created_at",{ascending:false});
+
+ let html="";
+
+ data.forEach(o=>{
+  html += `
+   <div class="order">
+    ${o.product}<br>
+    ${o.quantity}kg<br>
+    ${o.status}<br>
+   </div>
+  `;
+ });
+
+ document.getElementById("orders").innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>
+``
