@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CS Panel</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+body { font-family: Arial; padding:20px; }
+.order { border:1px solid #ddd; padding:10px; margin:10px; }
+button { padding:5px; margin:5px; }
+</style>
+
+</head>
+
+<body>
+
+<h2>📦 CS ORDER MANAGEMENT</h2>
+
+<input type="file" onchange="handleUpload(event)">
+<button onclick="loadOrders()">Load Orders</button>
+
+<div id="orders"></div>
+
+<script>
+
+const supabaseClient = supabase.createClient(
+ "https://YOUR_PROJECT.supabase.co",
+ "YOUR_PUBLIC_KEY"
+);
+
+// 📥 Upload Excel
+async function handleUpload(event){
+
+  const file = event.target.files[0];
+  const data = await file.arrayBuffer();
+  const workbook = XLSX.read(data);
+
+  const cp = XLSX.utils.sheet_to_json(workbook.Sheets["customer_products"]);
+  const pr = XLSX.utils.sheet_to_json(workbook.Sheets["pricing"]);
+
+  // clear old data
+  await supabaseClient.from("customer_products").delete().neq("id","0");
+  await supabaseClient.from("pricing").delete().neq("id","0");
+
+  // insert customer_products
+  for (let row of cp){
+    await supabaseClient.from("customer_products").insert([row]);
+  }
+
+  // insert pricing
+  for (let row of pr){
+    await supabaseClient.from("pricing").insert([row]);
+  }
+
+  alert("✅ Upload Excel thành công!");
+}
+
+// 📦 Load Orders
+async function loadOrders(){
+
+  const { data } = await supabaseClient
+    .from("orders")
+    .select("*")
+    .order("created_at",{ascending:false});
+
+  let html = "";
+
+  data.forEach(o=>{
+    html += `
+      <div class="order">
+        ${o.customer_email}<br>
+        ${o.product} - ${o.quantity} kg<br>
+        ${o.price} VND<br>
+        Status: ${o.status}
+      </div>
+    `;
+  });
+
+  document.getElementById("orders").innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>
