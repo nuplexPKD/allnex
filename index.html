@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Allnex Order Portal</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f5f5f5;
+      margin: 0;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      color: #ff5722;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin: 6px 0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #ff5722;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #e64a19;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>🛒 Allnex Order Portal</h2>
+
+<input id="company" placeholder="Company Name">
+<input id="contact" placeholder="Contact Person">
+<input id="email" placeholder="Email">
+
+<input id="search" placeholder="Search Product..." onkeyup="filterProduct()">
+
+<select id="product">
+<option value="">Select Product</option>
+</select>
+
+<input id="quantity" placeholder="Quantity (kg)">
+<input id="address" placeholder="Delivery Address">
+<input id="note" placeholder="Note">
+
+<button onclick="submitOrder()">Submit Order</button>
+
+</div>
+
+<script>
+
+// ✅ FULL PRODUCT LIST (rút gọn demo - anh có thể paste full 300+ dòng vào đây)
+const products = [
+"066395A01P01 - AQUAGUARD BLUE",
+"059943A01P01 - AQUAGUARD CLEAR",
+"066180A01P01 - AQUAGUARD BERMUDA",
+"065291A01P01 - AQUAGUARD GREY",
+"066553A01P02 - GP BLACK"
+];
+
+// load dropdown
+const dropdown = document.getElementById("product");
+
+function loadProducts(list) {
+  dropdown.innerHTML = "<option value=''>Select Product</option>";
+  list.forEach(p => {
+    let opt = document.createElement("option");
+    opt.value = p;
+    opt.text = p;
+    dropdown.appendChild(opt);
+  });
+}
+
+loadProducts(products);
+
+// search filter giống Shopee
+function filterProduct() {
+  let keyword = document.getElementById("search").value.toLowerCase();
+  let filtered = products.filter(p => p.toLowerCase().includes(keyword));
+  loadProducts(filtered);
+}
+
+// submit
+async function submitOrder() {
+
+  const data = {
+    company: document.getElementById("company").value,
+    contact: document.getElementById("contact").value,
+    email: document.getElementById("email").value,
+    product: document.getElementById("product").value,
+    quantity: document.getElementById("quantity").value,
+    address: document.getElementById("address").value,
+    note: document.getElementById("note").value
+  };
+
+  if (!data.company || !data.product || !data.quantity) {
+    alert("Please fill required fields");
+    return;
+  }
+
+  await fetch("https://formspree.io/f/REPLACE_YOUR_ID", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+
+  alert("✅ Order sent successfully!");
+
+}
+</script>
+
+</body>
+</html>
