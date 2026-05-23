@@ -169,14 +169,33 @@ function closeLogin(){
 
 // login logic
 async function login(){
- let email=document.getElementById("loginEmail").value;
 
- await supabaseClient.auth.signInWithOtp({ email: email });
+  let email = document.getElementById("loginEmail").value;
 
- alert("Check email to login");
- closeLogin();
+  if(!email){
+    alert("Please enter email");
+    return;
+  }
+
+  // ✅ check email có trong DB không
+  const { data } = await supabaseClient
+    .from("customer_products")
+    .select("customer_email")
+    .eq("customer_email", email)
+    .limit(1);
+
+  if(data.length === 0){
+    alert("Email không tồn tại trong hệ thống");
+    return;
+  }
+
+  // ✅ login thành công
+  localStorage.setItem("user_email", email);
+
+  document.getElementById("loginModal").style.display = "none";
+
+  showUser();
 }
-
 // show user
 async function showUser(){
  const { data } = await supabaseClient.auth.getUser();
@@ -190,7 +209,14 @@ showUser();
 // submit
 async function submitOrder(){
 
- const user = await supabaseClient.auth.getUser();
+
+const user = {
+  data: {
+    user: {
+      email: "truong.nguyenngoc@allnex.com"
+    }
+  }
+};
 
  const data = {
    customer_email: user.data.user.email,
